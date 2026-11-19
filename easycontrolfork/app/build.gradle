@@ -4,7 +4,8 @@ plugins {
 
 def keystorePropertiesFile = rootProject.file('../keystore.properties')
 def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 android {
   namespace 'com.daitj.easycontrolfork.app'
@@ -14,8 +15,8 @@ android {
     applicationId "com.daitj.easycontrolfork.app"
     minSdk 21
     targetSdk 34
-    versionCode 10004
-    versionName "1.0.4"
+    versionCode 10006
+    versionName "1.0.6"
     ndk {
       abiFilters "arm64-v8a", "armeabi-v7a", "x86", "x86_64"
     }
@@ -26,7 +27,7 @@ android {
   }
   
   signingConfigs {
-      release {
+      if (hasReleaseKeystore) release {
           storeFile file(keystoreProperties['MY_KEYSTORE_FILE'])
           storePassword keystoreProperties['MY_KEYSTORE_PASSWORD']
           keyAlias keystoreProperties['MY_KEY_ALIAS']
@@ -47,7 +48,8 @@ android {
       minifyEnabled true
       shrinkResources true
       proguardFiles 'proguard-rules.pro'
-      signingConfig signingConfigs.release
+      // Fall back to the debug key for local builds without the maintainer's keystore
+      signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
     }
   }
 
