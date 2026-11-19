@@ -4,6 +4,7 @@
 package com.daitj.easycontrolfork.server.helper;
 
 import android.graphics.Rect;
+import android.hardware.display.VirtualDisplay;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
@@ -38,7 +39,12 @@ public final class VideoEncode {
     byteBuffer.flip();
     Server.writeVideo(byteBuffer);
     // 创建显示器
-    display = SurfaceControl.createDisplay("easycontrol", Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (Build.VERSION.SDK_INT == Build.VERSION_CODES.R && !"S".equals(Build.VERSION.CODENAME)));
+    // Android 15+ removed SurfaceControl.createDisplay; fall back to a mirroring VirtualDisplay (as scrcpy does)
+    try {
+      display = SurfaceControl.createDisplay("easycontrol", Build.VERSION.SDK_INT < Build.VERSION_CODES.R || (Build.VERSION.SDK_INT == Build.VERSION_CODES.R && !"S".equals(Build.VERSION.CODENAME)));
+    } catch (Exception e) {
+      display = null;
+    }
     // 创建Codec
     createEncodecFormat();
     startEncode();
@@ -68,12 +74,32 @@ public final class VideoEncode {
     encedec.configure(encodecFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
     // 绑定Display和Surface
     surface = encedec.createInputSurface();
-    setDisplaySurface(display, surface);
+    if (display != null) {
+      setDisplaySurface(display, surface);
+    } else {
+      releaseVirtualDisplay();
+      try {
+        java.lang.reflect.Method m = android.hardware.display.DisplayManager.class.getMethod("createVirtualDisplay", String.class, int.class, int.class, int.class, Surface.class);
+        virtualDisplay = (VirtualDisplay) m.invoke(null, "easycontrol", Device.videoSize.first, Device.videoSize.second, Device.displayInfo.displayId, surface);
+      } catch (Exception e) {
+        throw new IOException("Could not create mirror display: " + e, e);
+      }
+    }
     // 启动编码
     encedec.start();
   }
 
+  private static VirtualDisplay virtualDisplay;
+
+  private static void releaseVirtualDisplay() {
+    if (virtualDisplay != null) {
+      virtualDisplay.release();
+      virtualDisplay = null;
+    }
+  }
+
   public static void stopEncode() {
+    releaseVirtualDisplay();
     encedec.stop();
     encedec.reset();
     surface.release();
@@ -109,7 +135,7 @@ public final class VideoEncode {
     try {
       stopEncode();
       encedec.release();
-      SurfaceControl.destroyDisplay(display);
+      if (display != null) SurfaceControl.destroyDisplay(display);
     } catch (Exception ignored) {
     }
   }
