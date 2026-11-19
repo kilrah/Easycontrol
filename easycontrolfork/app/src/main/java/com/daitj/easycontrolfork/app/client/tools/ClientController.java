@@ -6,10 +6,8 @@ import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.Intent;
 import android.graphics.SurfaceTexture;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.provider.Settings;
 import android.util.Pair;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -126,6 +124,9 @@ public class ClientController implements TextureView.SurfaceTextureListener {
         case "updateSite":
           updateSite(byteBuffer);
           break;
+        case "inputBlocked":
+          showInputBlocked();
+          break;
         default:
           if (byteBuffer == null) break;
         case "writeByteBuffer":
@@ -157,6 +158,16 @@ public class ClientController implements TextureView.SurfaceTextureListener {
     mainHandler.postDelayed(this::otherService, 2000);
   }
 
+  // 手机拒绝输入注入：全屏时在界面内弹窗（部分系统如 Horizon OS 不在全屏界面上显示 Toast），否则使用 Toast
+  private void showInputBlocked() {
+    String msg = AppData.applicationContext.getString(R.string.toast_input_blocked);
+    FullActivity view = fullView;
+    if (view != null) {
+      PublicTools.logToast("controller", msg, false);
+      AppData.uiHandler.post(() -> view.showMessage(msg));
+    } else PublicTools.logToast("controller", msg, true);
+  }
+
   public void setFullView(FullActivity fullView) {
     this.fullView = fullView;
   }
@@ -174,8 +185,7 @@ public class ClientController implements TextureView.SurfaceTextureListener {
 
   private synchronized void changeToSmall() {
     hide();
-    if (noFloatPermission()) {
-      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
+    if (noFloatingWindow()) {
       changeToFull();
     } else {
       if (smallView == null) smallView = new SmallView(device.uuid);
@@ -186,8 +196,7 @@ public class ClientController implements TextureView.SurfaceTextureListener {
 
   private synchronized void changeToMini(ByteBuffer byteBuffer) {
     hide();
-    if (noFloatPermission()) {
-      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
+    if (noFloatingWindow()) {
       changeToFull();
     } else {
       if (miniView == null) miniView = new MiniView(device.uuid);
@@ -195,21 +204,17 @@ public class ClientController implements TextureView.SurfaceTextureListener {
     }
   }
 
-  // 检查悬浮窗权限
-  private boolean noFloatPermission() {
-    // 检查悬浮窗权限，防止某些设备如鸿蒙不兼容
-    try {
-      return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppData.applicationContext);
-    } catch (Exception ignored) {
-      return false;
-    }
+  // 检查是否可以使用悬浮窗（用户已开启且已授权）
+  // Only warns when the user opted in to floating windows but the permission is missing.
+  private boolean noFloatingWindow() {
+    if (!AppData.setting.getFloatingWindow()) return true;
+    if (PublicTools.hasFloatPermission()) return false;
+    PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
+    return true;
   }
 
   private synchronized void changeToApp() throws Exception {
-    if (noFloatPermission()) {
-      PublicTools.logToast("controller", AppData.applicationContext.getString(R.string.toast_float_per), true);
-      return;
-    }
+    if (noFloatingWindow()) return;
     // 获取当前APP
     String output = clientStream.runShell("dumpsys window | grep mCurrentFocus=Window");
     // 创建匹配器

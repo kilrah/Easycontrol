@@ -27,6 +27,17 @@ public final class Setting {
     editor.apply();
   }
 
+  // Floating (small/mini overlay) windows are opt-in: they need the "display over other apps"
+  // permission and misbehave on platforms such as Meta Horizon OS.
+  public boolean getFloatingWindow() {
+    return sharedPreferences.getBoolean("floatingWindow", false);
+  }
+
+  public void setFloatingWindow(boolean value) {
+    editor.putBoolean("floatingWindow", value);
+    editor.apply();
+  }
+
   public String getLocalUUID() {
     if (!sharedPreferences.contains("UUID")) {
       editor.putString("UUID", UUID.randomUUID().toString());

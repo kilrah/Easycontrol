@@ -49,6 +49,18 @@ public final class ControlPacket {
     }
   }
 
+  // 输入注入被系统拒绝（例如小米设备未开启“USB调试（安全设置）”）
+  public static void sendInputBlockedEvent() {
+    ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+    byteBuffer.put((byte) 4);
+    byteBuffer.flip();
+    try {
+      Server.writeMain(byteBuffer);
+    } catch (IOException e) {
+      Server.errorClose(e);
+    }
+  }
+
   public static void sendVideoSizeEvent() throws IOException {
     ByteBuffer byteBuffer = ByteBuffer.allocate(9);
     byteBuffer.put((byte) 3);

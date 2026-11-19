@@ -24,6 +24,7 @@ public class ClientPlayer {
   private static final int AUDIO_EVENT = 1;
   private static final int CLIPBOARD_EVENT = 2;
   private static final int CHANGE_SIZE_EVENT = 3;
+  private static final int INPUT_BLOCKED_EVENT = 4;
 
   public ClientPlayer(String uuid, ClientStream clientStream) {
     clientController = Client.getClientController(uuid);
@@ -55,6 +56,9 @@ public class ClientPlayer {
             break;
           case CHANGE_SIZE_EVENT:
             clientController.handleAction("updateVideoSize", clientStream.readByteArrayFromMain(8), 0);
+            break;
+          case INPUT_BLOCKED_EVENT:
+            clientController.handleAction("inputBlocked", null, 0);
             break;
         }
       }

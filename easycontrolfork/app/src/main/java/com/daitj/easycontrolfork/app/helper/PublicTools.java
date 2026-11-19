@@ -3,6 +3,8 @@ package com.daitj.easycontrolfork.app.helper;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -32,6 +34,21 @@ import com.daitj.easycontrolfork.app.adb.AdbKeyPair;
 import com.daitj.easycontrolfork.app.entity.AppData;
 
 public class PublicTools {
+
+  // 是否拥有悬浮窗权限
+  public static boolean hasFloatPermission() {
+    // 检查悬浮窗权限，防止某些设备如鸿蒙不兼容
+    try {
+      return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(AppData.applicationContext);
+    } catch (Exception ignored) {
+      return true;
+    }
+  }
+
+  // Floating windows are only used when the user opted in AND the permission is granted
+  public static boolean floatingWindowAllowed() {
+    return AppData.setting.getFloatingWindow() && hasFloatPermission();
+  }
 
   // DP转PX
   public static int dp2px(Float dp) {

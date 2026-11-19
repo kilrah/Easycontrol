@@ -16,6 +16,7 @@ import android.view.InputEvent;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import java.lang.reflect.InvocationTargetException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -237,9 +238,17 @@ public final class Device {
     try {
       if (displayId != Display.DEFAULT_DISPLAY) InputManager.setDisplayId(inputEvent, displayId);
       InputManager.injectInputEvent(inputEvent, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      // Report a permission refusal to the client once per session
+      Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+      if (cause instanceof SecurityException && !inputBlockedReported) {
+        inputBlockedReported = true;
+        ControlPacket.sendInputBlockedEvent();
+      }
     }
   }
+
+  private static boolean inputBlockedReported = false;
 
   public static void changeScreenPowerMode(int mode) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

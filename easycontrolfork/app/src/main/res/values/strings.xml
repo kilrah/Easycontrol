@@ -17,6 +17,8 @@
   <string name="set_other_reset_key">Reset ADB key</string>
   <string name="set_other_ip">IP addresses</string>
   <string name="set_other_locale">Change language(中文/English)</string>
+  <string name="set_floating_window">Floating windows</string>
+  <string name="set_floating_window_detail">Allow small and mini floating window modes. Requires the \"display over other apps\" permission. When off, devices always open fullscreen.</string>
   <string name="set_about_website">Homepage</string>
   <string name="set_about_privacy">Privacy Policy</string>
   <string name="set_about_version">Version: </string>
@@ -115,5 +117,7 @@
   <string name="toast_connect_server">Failed to connect</string>
   <string name="toast_stream_closed">Disconnected</string>
   <string name="toast_float_per">Need floating window permission</string>
+  <string name="toast_float_per_adb">No settings page for this permission. Grant it via adb: adb shell appops set %1$s SYSTEM_ALERT_WINDOW allow</string>
+  <string name="toast_input_blocked">Control unavailable: the phone refused input from adb. On Xiaomi/HyperOS, enable \"USB debugging (Security settings)\" in Developer options.</string>
 
 </resources>

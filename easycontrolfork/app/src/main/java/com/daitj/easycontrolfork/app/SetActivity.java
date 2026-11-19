@@ -2,7 +2,9 @@ package com.daitj.easycontrolfork.app;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.widget.Toast;
 
 import com.daitj.easycontrolfork.app.databinding.ActivitySetBinding;
@@ -27,6 +29,11 @@ public class SetActivity extends Activity {
 
   // 设置默认值
   private void drawUi() {
+    // 悬浮窗（默认关闭，开启时才申请权限）
+    activitySetBinding.setOther.addView(ViewTools.createSwitchCard(this, getString(R.string.set_floating_window), getString(R.string.set_floating_window_detail), AppData.setting.getFloatingWindow(), isChecked -> {
+      AppData.setting.setFloatingWindow(isChecked);
+      if (isChecked && !PublicTools.hasFloatPermission()) requestFloatPermission();
+    }).getRoot());
     // 其他
     activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_ip), () -> startActivity(new Intent(this, IpActivity.class))).getRoot());
     activitySetBinding.setOther.addView(ViewTools.createTextCard(this, getString(R.string.set_other_custom_key), () -> startActivity(new Intent(this, AdbKeyActivity.class))).getRoot());
@@ -39,6 +46,16 @@ public class SetActivity extends Activity {
       Toast.makeText(this, getString(R.string.toast_change_locale), Toast.LENGTH_SHORT).show();
     }).getRoot());
    }
+
+  // 申请悬浮窗权限；部分系统（如 Meta Horizon OS）没有对应的设置页面，此时提示使用 adb 授权
+  private void requestFloatPermission() {
+    try {
+      Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+      startActivity(intent);
+    } catch (Exception ignored) {
+      Toast.makeText(this, getString(R.string.toast_float_per_adb, getPackageName()), Toast.LENGTH_LONG).show();
+    }
+  }
 
   // 设置按钮监听
   private void setButtonListener() {

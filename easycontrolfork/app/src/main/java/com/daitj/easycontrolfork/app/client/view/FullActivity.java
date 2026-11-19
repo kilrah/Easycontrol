@@ -56,6 +56,12 @@ public class FullActivity extends Activity implements SensorEventListener {
       activityFullBinding.buttonSwitch.setVisibility(View.GONE);
       activityFullBinding.buttonApp.setVisibility(View.GONE);
     }
+    // 未启用悬浮窗时隐藏切换到悬浮窗的按钮
+    if (!PublicTools.floatingWindowAllowed()) {
+      activityFullBinding.buttonMini.setVisibility(View.GONE);
+      activityFullBinding.buttonSmall.setVisibility(View.GONE);
+      activityFullBinding.buttonApp.setVisibility(View.GONE);
+    }
     // 按键监听
     setButtonListener();
     setKeyEvent();
@@ -70,7 +76,10 @@ public class FullActivity extends Activity implements SensorEventListener {
   protected void onPause() {
     AppData.sensorManager.unregisterListener(this);
     if (isChangingConfigurations()) activityFullBinding.textureViewLayout.removeView(clientController.getTextureView());
-    else if (!isClose) clientController.handleAction(device.fullToMiniOnRunning ? "changeToMini" : "changeToSmall", ByteBuffer.wrap("changeToFull".getBytes()), 0);
+    // Without floating windows, keep running in this activity when it loses focus
+    // (e.g. system menu, headset removed) instead of popping up an overlay.
+    else if (!isClose && !PublicTools.floatingWindowAllowed() && isFinishing()) Client.sendAction(device.uuid, "close", null, 0);
+    else if (!isClose && PublicTools.floatingWindowAllowed()) clientController.handleAction(device.fullToMiniOnRunning ? "changeToMini" : "changeToSmall", ByteBuffer.wrap("changeToFull".getBytes()), 0);
     super.onPause();
   }
 
@@ -93,6 +102,12 @@ public class FullActivity extends Activity implements SensorEventListener {
     byteBuffer.flip();
     clientController.handleAction("updateMaxSize", byteBuffer, 0);
     if (!device.customResolutionOnConnect && device.changeResolutionOnRunning) clientController.handleAction("writeByteBuffer", ControlPacket.createChangeResolutionEvent((float) width / height), 0);
+  }
+
+  // 在全屏界面内显示提示
+  public void showMessage(String msg) {
+    if (isFinishing() || isDestroyed()) return;
+    new android.app.AlertDialog.Builder(this).setMessage(msg).setPositiveButton(android.R.string.ok, null).show();
   }
 
   public void hide() {
